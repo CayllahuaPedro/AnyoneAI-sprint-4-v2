@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+env/
+venv/
+.venv/
+pip-wheel-metadata/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data (large files)
+data/processed_products_with_images.csv
+data/Raw/processed_products.csv
+data/Raw/products.json
+
+# Models & checkpoints
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+models/
+checkpoints/
+
+# Logs
+*.log
+logs/
+runs/
+wandb/
+mlruns/
+
+# Env
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
