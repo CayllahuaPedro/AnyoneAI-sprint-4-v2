@@ -20,8 +20,6 @@ pip-wheel-metadata/
 
 # Data (large files)
 data/processed_products_with_images.csv
-data/Raw/processed_products.csv
-data/Raw/products.json
 
 # Models & checkpoints
 *.h5
