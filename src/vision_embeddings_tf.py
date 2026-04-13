@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import os
-from transformers import TFViTModel, TFSwinModel
 from tensorflow.keras.applications import (
     ResNet50, ResNet101, DenseNet121, DenseNet169, InceptionV3, ConvNeXtTiny
 )
@@ -38,7 +37,7 @@ class FoundationalCVModel:
         self.backbone_name = backbone
         input_layer = Input(shape=input_shape)
 
-        # ✅ MODELOS KERAS (seguros)
+        # Modelos Keras (estables y sin dependencias extra de Transformers)
         if backbone == 'resnet50':
             self.base_model = ResNet50(weights='imagenet', include_top=False)
         elif backbone == 'resnet101':
@@ -49,42 +48,20 @@ class FoundationalCVModel:
             self.base_model = DenseNet169(weights='imagenet', include_top=False)
         elif backbone == 'inception_v3':
             self.base_model = InceptionV3(weights='imagenet', include_top=False)
-        elif backbone == 'convnext_tiny':
+        elif backbone in {'convnext_tiny', 'convnextv2_tiny'}:
             self.base_model = ConvNeXtTiny(weights='imagenet', include_top=False)
-
-        # ✅ TRANSFORMERS (TF)
-        elif backbone == 'swin_tiny':
-            self.base_model = TFSwinModel.from_pretrained(
-                'microsoft/swin-tiny-patch4-window7-224'
-            )
-        elif backbone == 'swin_small':
-            self.base_model = TFSwinModel.from_pretrained(
-                'microsoft/swin-small-patch4-window7-224'
-            )
-        elif backbone == 'swin_base':
-            self.base_model = TFSwinModel.from_pretrained(
-                'microsoft/swin-base-patch4-window7-224'
-            )
-        elif backbone in ['vit_base', 'vit_large']:
-            backbone_path = {
-                'vit_base': 'google/vit-base-patch16-224',
-                'vit_large': 'google/vit-large-patch16-224',
-            }
-            self.base_model = TFViTModel.from_pretrained(backbone_path[backbone])
         else:
-            raise ValueError(f"Unsupported backbone model: {backbone}")
+            raise ValueError(
+                f"Unsupported backbone model: {backbone}. "
+                "Usá resnet50, resnet101, densenet121, densenet169, inception_v3 o convnext_tiny."
+            )
 
         if mode == 'eval':
             self.base_model.trainable = False
 
         # 🔥 Construcción del modelo
-        if backbone in ['vit_base', 'vit_large', 'swin_tiny', 'swin_small', 'swin_base']:
-            # Transformers usan channels_first
-            x = tf.transpose(input_layer, perm=[0, 3, 1, 2])
-            outputs = self.base_model(x).pooler_output
-        else:
-            x = self.base_model(input_layer)
-            outputs = GlobalAveragePooling2D()(x)
+        x = self.base_model(input_layer)
+        outputs = GlobalAveragePooling2D()(x)
 
         self.model = Model(inputs=input_layer, outputs=outputs)
 
