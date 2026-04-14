@@ -106,6 +106,24 @@ class ImageFolderDataset:
         return img_name, img
 
 
+def _build_tf_dataset(folder_path, image_files, target_size, batch_size):
+    paths = [os.path.join(folder_path, f) for f in image_files]
+    paths_ds = tf.data.Dataset.from_tensor_slices(paths)
+
+    def _load(path):
+        raw = tf.io.read_file(path)
+        img = tf.io.decode_image(raw, channels=3, expand_animations=False)
+        img = tf.image.resize(img, target_size)
+        img = tf.cast(img, tf.float32) / 255.0
+        img.set_shape((target_size[0], target_size[1], 3))
+        return img
+
+    ds = paths_ds.map(_load, num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.batch(batch_size)
+    ds = ds.prefetch(tf.data.AUTOTUNE)
+    return ds
+
+
 def get_embeddings_df(
     batch_size=32,
     path="data/images",
@@ -118,24 +136,22 @@ def get_embeddings_df(
     dataset = ImageFolderDataset(folder_path=path, image_files=image_files)
     model = FoundationalCVModel(backbone)
 
-    img_names = []
+    gpus = tf.config.list_physical_devices('GPU')
+    print(f"TF {tf.__version__} | GPUs visible: {len(gpus)}")
+
+    target_size = (224, 224)
+    ds = _build_tf_dataset(path, dataset.image_files, target_size, batch_size)
+
     features = []
+    total_batches = (len(dataset) + batch_size - 1) // batch_size
 
-    for i in range(0, len(dataset), batch_size):
-        batch_files = dataset.image_files[i:i + batch_size]
-        batch_imgs = np.array([
-            dataset[j][1] for j in range(i, min(i + batch_size, len(dataset)))
-        ])
-
-        batch_features = model.predict(batch_imgs)
-
-        img_names.extend(batch_files)
+    for step, batch in enumerate(ds, start=1):
+        batch_features = model.model(batch, training=False).numpy()
         features.extend(batch_features)
-
-        print(f"Batch {i // batch_size + 1} done")
+        print(f"Batch {step}/{total_batches} done")
 
     df = pd.DataFrame({
-        'ImageName': img_names,
+        'ImageName': dataset.image_files,
         'Embeddings': features
     })
 
